@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+  
+  <title>Standard Logic Apps で AAD 認証する方法について | Japan Azure Integration Support Blog</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="こんにちは！Azure Integration サポート チームの 川合 です。Standard Logic Apps （シングルテナント） をご利用のお客様も多いかと思いますが、App Service や Azure Functions と異なり、Standard Logic Apps では Azure Portal から AAD 認証の設定が出来ません。  今回は、REST API を用いて">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Standard Logic Apps で AAD 認証する方法について">
+<meta property="og:url" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/index.html">
+<meta property="og:site_name" content="Japan Azure Integration Support Blog">
+<meta property="og:description" content="こんにちは！Azure Integration サポート チームの 川合 です。Standard Logic Apps （シングルテナント） をご利用のお客様も多いかと思いますが、App Service や Azure Functions と異なり、Standard Logic Apps では Azure Portal から AAD 認証の設定が出来ません。  今回は、REST API を用いて">
+<meta property="og:locale" content="ja_JP">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image000.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image001.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image002.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image003.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image004.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image017.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image018.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image01802.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image01801.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image019.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image020.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image021.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image022.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image023.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image00701.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image024.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image025.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image026.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image027.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image028.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image029.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image030.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image01101.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image012.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image013.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image014.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image015.png">
+<meta property="og:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image016.png">
+<meta property="article:published_time" content="2023-03-30T15:00:00.000Z">
+<meta property="article:modified_time" content="2026-06-12T17:39:31.482Z">
+<meta property="article:author" content="Japan Azure Integration Support Team">
+<meta property="article:tag" content="Azure Integration">
+<meta property="article:tag" content="Azure Logic Apps">
+<meta property="article:tag" content="How-To">
+<meta property="article:tag" content="Standard Logic Apps">
+<meta property="article:tag" content="Tips">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/image000.png">
+  
+    <link rel="alternate" href="../../atom.xml" title="Japan Azure Integration Support Blog" type="application/atom+xml">
+  
+
+  <link rel="icon" href="../../favicon.ico">
+  <link rel="apple-touch-icon" sizes="180x180" href="../../apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="../../favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="../../favicon-16x16.png">
+  <link rel="manifest" href="../../site.webmanifest">
+  <link rel="mask-icon" href="../../safari-pinned-tab.svg" color="#5bbad5">
+  <meta name="msapplication-TileColor" content="#ffffff">
+  <meta name="theme-color" content="#ffffff">
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="../../css/style.css">
+
+  <script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+<meta name="generator" content="Hexo 8.1.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="site-header-logo"></div>
+  <div id="site-header-blog-wrapper"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        <div id="ms-logo"></div>
+        
+          <a class="main-nav-link" href="/blog/">Home</a>
+        
+          <a class="main-nav-link" href="/blog/archives">Archives</a>
+        
+        <a class="main-nav-link" href="https://cssjpn.github.io/">サポート情報</a>
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="../../atom.xml" title="RSSフィード"></a>
+        
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//www.bing.com/search" method="get" accept-charset="UTF-8" name="bing-search" onsubmit="var f=this;if(f['q'].value){var searchUrl =  'https://www.bing.com/search?q=' +  encodeURIComponent(f['q'].value + ' site:' + f['sitesearch'].value) ;window.open(searchUrl, 'blank') };return false;" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="検索"><button type="submit" id="nav-search-btn" class="search-form-submit"></button><input type="hidden" name="sitesearch" value="https://yiwen-chen.github.io/blog"></form>
+      </div>
+    </div>
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="../../index.html" id="logo">Japan Azure Integration Support Blog</a>
+      </h1>
+      
+        <h2 id="subtitle-wrap">
+          <a href="../../index.html" id="subtitle">日本マイクロソフトの Azure Integration に関するサポート情報のブログです。</a>
+        </h2>
+      
+    </div>
+  </div>
+</header>
+
+      <div class="outer">
+        <section id="main"><article id="post-LogicApps/AadAuthentication" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-inner">
+    
+    
+    
+      <header class="article-header-single">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      Standard Logic Apps で AAD 認証する方法について
+    </h1>
+  
+
+      </header>
+      <div class="article-share">
+        Published: 
+        <a href="" class="article-date-single">
+  <time datetime="2023-03-30T15:00:00.000Z" itemprop="datePublished">2023-03-31</time>
+</a>
+        
+        
+        
+        <a href="https://github.com/Yiwen-Chen/blog/issues/new?title=&body=%0A---%0A%0A%23%23%23%23+Document+Details%0A%0A%E2%9A%A0+*Do+not+edit+this+section.%0A%0A*+ID%3A+fcbe5443-b859-5051-8f8d-1f396ee15ede%0A*+%E5%AF%BE%E8%B1%A1%E8%A8%98%E4%BA%8B%3A+%5BStandard+Logic+Apps+%E3%81%A7+AAD+%E8%AA%8D%E8%A8%BC%E3%81%99%E3%82%8B%E6%96%B9%E6%B3%95%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6%5D%28https%3A%2F%2Fyiwen-chen.github.io%2Fblog%2FLogicApps%2FAadAuthentication%2F%29%0A*+Content+Source%3A+%5Barticles%2FLogicApps%2FAadAuthentication.md%5D%28https%3A%2F%2Fgithub.com%2FYiwen-Chen%2Fblog%2Fblob%2Fmain%2Farticles%2FLogicApps%2FAadAuthentication.md%29%0A*+Author%3A+%0A" class="article-github-issue-link" target="_blank" rel="noopener noreferrer">feedback</a>
+        
+        <a data-url="https://yiwen-chen.github.io/blog/LogicApps/AadAuthentication/" data-id="cuidYKW1oVPYueozHbr3VU6fm" class="article-share-link">共有</a>
+      </div>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <p>こんにちは！Azure Integration サポート チームの 川合 です。<br>Standard Logic Apps （シングルテナント） をご利用のお客様も多いかと思いますが、App Service や Azure Functions と異なり、Standard Logic Apps では Azure Portal から AAD 認証の設定が出来ません。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image000.png"></p>
+<p>今回は、REST API を用いて Standard Logic Apps でも AAD 認証 (EasyAuth) を行う方法をご紹介いたします。</p>
+<span id="more"></span>
+
+<h2 id="目次"><a href="#目次" class="headerlink" title="目次"></a>目次</h2><ul>
+<li>事前準備・前提</li>
+<li>Azure Active Directory へのアプリ登録</li>
+<li>トークン取得</li>
+<li>Resource Explorer にて authsettingsV2 の更新</li>
+<li>AAD 認証による Standard Logic Apps の実行</li>
+<li>まとめ</li>
+</ul>
+<h2 id="事前準備・前提"><a href="#事前準備・前提" class="headerlink" title="事前準備・前提"></a>事前準備・前提</h2><p>今回の記事については以下の情報を参考にしております。</p>
+<ul>
+<li><a href="https://techcommunity.microsoft.com/t5/integrations-on-azure-blog/trigger-workflows-in-standard-logic-apps-with-easy-auth/ba-p/3207378">Trigger workflows in Standard logic apps with Easy Auth</a></li>
+</ul>
+<p>なお、本記事における REST API の実行方法については <a href="https://www.postman.com/downloads/">postman</a> を利用してリクエストを送信します。そのため、Postman のインストール設定を事前に実施いただくことが前提の記事となります。<br>authsettingsV2 の更新については、<a href="https://resources.azure.com/">Resource Explorer</a> を利用して更新いたします。</p>
+<p>＜参考情報＞<br><a href="https://learn.microsoft.com/ja-jp/azure/app-service/configure-authentication-file-based">Azure App Service 認証でのファイルベースの構成</a></p>
+<p>途中でトークンのデコードを行う手順がございますが、 <a href="https://jwt.io/">jwt.io</a> （もしくは <a href="https://jwt.ms/">jwt.ms</a> ） というサイトで行います。</p>
+<p>なお、本記事についてはあくまでも Logic Apps を呼び出す方法となります。Logic Apps から App Service や Functions を呼び出す方法ではございませんことと、そちらの方法については本記事ではご案内しませんのでご留意ください。</p>
+<p>以上を基に、本記事では認証手順を記載いたします。</p>
+<h2 id="Azure-Active-Directory-へのアプリ登録"><a href="#Azure-Active-Directory-へのアプリ登録" class="headerlink" title="Azure Active Directory へのアプリ登録"></a>Azure Active Directory へのアプリ登録</h2><p>始めに、トークンを取得する為にお客様がご利用いただいている Azure Active Directory に対して “アプリの登録” を行います。<br>なお、トークンの取得方法については複数ございますため、お客様にとって容易な方法でご対応いただければと存じます。</p>
+<p>＜アプリの登録手順＞<br>１．Azure Portal より Azure Active Directory を選択し、[アプリの登録] を選択。<br><img src="/blog/LogicApps/AadAuthentication/image001.png"></p>
+<p>２．以下の内容で登録。<br>・名前 &#x3D; 任意の値<br>・サポートされているアカウントの種類 &#x3D; “この組織ディレクトリのみに含まれるアカウント (Microsoft のみ - シングル テナント)</p>
+<p>以降変更なし。<br><img src="/blog/LogicApps/AadAuthentication/image002.png"></p>
+<p>アプリの登録が出来ましたら、[概要] より以下の内容を控えていただきます。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image003.png"></p>
+<p>＜控える項目＞<br>・アプリケーション (クライアント) ID<br>・オブジェクト ID<br>・ディレクトリ (テナント) ID</p>
+<p>次に、[証明書とシークレット] のメニューより、[新しいクライアント シークレット] を作成いただきます。<br>こちらについては有効期限はお客様の要件によって任意の値を設定下さいますようお願いいたします。<br>ここで表示されるクライアントシークレットの値は一度しか表示されませんので、確実にこの作成したタイミングで控えていただきますようお願いいたします。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image004.png"></p>
+<p>＜控える項目＞<br>・値</p>
+<p>次に、[管理] - [API の公開] のメニューより、[アプリケーション ID の URI] の 設定ボタンを選択します。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image017.png"></p>
+<p>“api:&#x2F;&#x2F;“ から始まるアプリケーション ID の URI が払い出されますので、保存ボタンを選択します。<br><img src="/blog/LogicApps/AadAuthentication/image018.png"></p>
+<p>このタイミングで、”アプリケーション ID の URI” の値を控えておきます。<br><img src="/blog/LogicApps/AadAuthentication/image01802.png"></p>
+<p>＜控える項目＞<br>・アプリケーション ID の URI </p>
+<p>最後に、[管理] - [マニフェスト] より、”accessTokenAcceptedVersion” の値を “2” に設定後、保存ボタンを選択します。<br><img src="/blog/LogicApps/AadAuthentication/image01801.png"></p>
+<p>Azure Active Directory へのアプリ登録の方法については以上となります。次の手順で、認証に利用するトークンの情報を取得致します。</p>
+<h2 id="トークン取得"><a href="#トークン取得" class="headerlink" title="トークン取得"></a>トークン取得</h2><p>続いて、AAD 認証に必要な REST API を設定いたします。まず、先に記載しました Postman を起動し、トークンを取得します。<br><img src="/blog/LogicApps/AadAuthentication/image019.png"></p>
+<p>・POSTメソッド<br><a href="https://login.microsoftonline.com/%7B%E3%83%87%E3%82%A3%E3%83%AC%E3%82%AF%E3%83%88%E3%83%AA(%E3%83%86%E3%83%8A%E3%83%B3%E3%83%88)ID%7D/oauth2/v2.0/token">https://login.microsoftonline.com/{ディレクトリ(テナント)ID}/oauth2/v2.0/token</a><br><img src="/blog/LogicApps/AadAuthentication/image020.png"></p>
+<p>Body には [x-www-from-urlencoded] を指定し、以下の内容を設定します。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image021.png"><br>client_id &#x3D; AAD に登録したアプリの [アプリケーション (クライアント) ID] を指定<br>scope &#x3D; {アプリケーション ID の URI}&#x2F;.default<br>client_secret &#x3D; クライアントシークレットの [値]<br>grant_type &#x3D; client_credentials</p>
+<p>それ以外のパラメーターは特に設定不要でございます。</p>
+<p>以上の設定が設定出来ましたら、画面右上の [Send] ボタンを選択し、リクエストを送信します。<br><img src="/blog/LogicApps/AadAuthentication/image022.png"></p>
+<p>リクエストが成功すると、Body の中にトークンの値が表示されますので、 “access_token” を全て控えていただきます。</p>
+<p>＜控える項目＞<br>・access_token<br><img src="/blog/LogicApps/AadAuthentication/image023.png"></p>
+<p>続いて、取得した “access_token” をデコードし、oid を取得することと、aud の値と作成したアプリの client_id を比較いたします。</p>
+<p><a href="https://jwt.io/">jwt.io</a></p>
+<p><img src="/blog/LogicApps/AadAuthentication/image00701.png"></p>
+<p>ブラウザで上記サイトを開いたら以下の [Encoded] に先ほどコピーした “access_token” を全て貼り付けます。<br><img src="/blog/LogicApps/AadAuthentication/image024.png"></p>
+<p>画面右側の [Decoded] - [PAYLOAD] の以下の値を値を控えていただきます。<br><img src="/blog/LogicApps/AadAuthentication/image025.png"></p>
+<p>＜控える項目＞<br>・oid</p>
+<p>ここで、aud の値と作成したアプリの client_id (アプリケーション (クライアント) ID) が同じものであることを確認します。</p>
+<p>トークン取得の作業としては以上となりますが、”access_token” , “aud” および “oid” については後続の手順で利用しますので、そのまま残していただきますようお願いいたします。<br>なお、こちらのトークンにつきましては、通常 1 ~ 1.5 h の有効期限がございます。そのため、トークン発行後、有効期限が切れるたびに再取得する必要があることをご留意願います。</p>
+<h2 id="Resource-Explorer-にて-authsettingsV2-の更新"><a href="#Resource-Explorer-にて-authsettingsV2-の更新" class="headerlink" title="Resource Explorer にて authsettingsV2 の更新"></a>Resource Explorer にて authsettingsV2 の更新</h2><p>続いて、authsettingsV2 API を呼び出します。こちらは Standard Logic Apps に対して AAD 認証を行うための事前処理を行うものでございます。<br>こちらの手順では Resource Explorer を用いてリクエストを送信いたします。</p>
+<p>初めに、以下の URL より Resource Explorer を起動いたします。<br><a href="https://resources.azure.com/">Resource Explorer</a>　</p>
+<p>検索ボックスに今回 AAD 認証で起動したい Standard Logic Apps のリソース名を入力し、リソースプロバイダが “Microsoft.Web&#x2F;sites” となっているものを選択します。<br><img src="/blog/LogicApps/AadAuthentication/image026.png"></p>
+<p>対象のリソースが確認出来ましたら、[config] - [authsettingsV2] を選択いたします。<br><img src="/blog/LogicApps/AadAuthentication/image027.png"></p>
+<p>表示されている画面にて authsettingsV2 の REST API を実行することが可能ですので、画面上部の “Read&#x2F;Write” より編集可能な状態に設定後、”Data (Get,PUT)” を選択し、[Edit] ボタンを選択いたします。<br><img src="/blog/LogicApps/AadAuthentication/image028.png"></p>
+<p>PUT メソッドで設定する Body について、以下の記事を参考に設定いただきます。</p>
+<ul>
+<li><a href="https://techcommunity.microsoft.com/t5/integrations-on-azure-blog/trigger-workflows-in-standard-logic-apps-with-easy-auth/ba-p/3207378">Trigger workflows in Standard logic apps with Easy Auth</a></li>
+</ul>
+<p>＜Body サンプル＞</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br></pre></td><td class="code"><pre><span class="line">&#123;</span><br><span class="line">    &quot;id&quot;: &quot;/subscriptions/&#123;subscriptionId&#125;/resourcegroups/&#123;resourceGroupName&#125;/providers/Microsoft.Web/sites/&#123;logicAppName&#125;/config/authsettingsV2&quot;,</span><br><span class="line">    &quot;name&quot;: &quot;authsettingsV2&quot;,</span><br><span class="line">    &quot;type&quot;: &quot;Microsoft.Web/sites/config&quot;,</span><br><span class="line">    &quot;location&quot;: &quot;&#123;locationOfLogicApp&#125;&quot;,</span><br><span class="line">    &quot;tags&quot;: &#123;&#125;,</span><br><span class="line">    &quot;properties&quot;: &#123;</span><br><span class="line">        &quot;platform&quot;: &#123;</span><br><span class="line">            &quot;enabled&quot;: true,</span><br><span class="line">            &quot;runtimeVersion&quot;: &quot;~1&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;globalValidation&quot;: &#123;</span><br><span class="line">            &quot;requireAuthentication&quot;: true,</span><br><span class="line">            &quot;unauthenticatedClientAction&quot;: &quot;AllowAnonymous&quot;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;identityProviders&quot;: &#123;</span><br><span class="line">            &quot;azureActiveDirectory&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: true,</span><br><span class="line">                &quot;registration&quot;: &#123;</span><br><span class="line">                    &quot;openIdIssuer&quot;: &quot;&#123;issuerId&#125;&quot;,</span><br><span class="line">                    &quot;clientId&quot;: &quot;&#123;clientId&#125;&quot;</span><br><span class="line">                &#125;,</span><br><span class="line">                &quot;login&quot;: &#123;</span><br><span class="line">                    &quot;disableWWWAuthenticate&quot;: false</span><br><span class="line">                &#125;,</span><br><span class="line">                &quot;validation&quot;: &#123;</span><br><span class="line">                    &quot;jwtClaimChecks&quot;: &#123;&#125;,</span><br><span class="line">                    &quot;allowedAudiences&quot;: [</span><br><span class="line">                        &quot;&#123;audience1&#125;&quot;,</span><br><span class="line">                        &quot;&#123;audience2&#125;&quot;</span><br><span class="line">                    ],</span><br><span class="line">                    &quot;defaultAuthorizationPolicy&quot;: &#123;</span><br><span class="line">                        &quot;allowedPrincipals&quot;: &#123;</span><br><span class="line">                            &quot;identities&quot;: [</span><br><span class="line">                                &quot;&#123;ObjectId of AAD app&#125;&quot;</span><br><span class="line">                            ]</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;facebook&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;,</span><br><span class="line">                &quot;login&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;gitHub&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;,</span><br><span class="line">                &quot;login&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;google&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;,</span><br><span class="line">                &quot;login&quot;: &#123;&#125;,</span><br><span class="line">                &quot;validation&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;twitter&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;legacyMicrosoftAccount&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;,</span><br><span class="line">                &quot;login&quot;: &#123;&#125;,</span><br><span class="line">                &quot;validation&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;apple&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;registration&quot;: &#123;&#125;,</span><br><span class="line">                &quot;login&quot;: &#123;&#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;login&quot;: &#123;</span><br><span class="line">            &quot;routes&quot;: &#123;&#125;,</span><br><span class="line">            &quot;tokenStore&quot;: &#123;</span><br><span class="line">                &quot;enabled&quot;: false,</span><br><span class="line">                &quot;tokenRefreshExtensionHours&quot;: 72.0,</span><br><span class="line">                &quot;fileSystem&quot;: &#123;&#125;,</span><br><span class="line">                &quot;azureBlobStorage&quot;: &#123;&#125;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;preserveUrlFragmentsForLogins&quot;: false,</span><br><span class="line">            &quot;cookieExpiration&quot;: &#123;</span><br><span class="line">                &quot;convention&quot;: &quot;FixedTime&quot;,</span><br><span class="line">                &quot;timeToExpiration&quot;: &quot;08:00:00&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;nonce&quot;: &#123;</span><br><span class="line">                &quot;validateNonce&quot;: true,</span><br><span class="line">                &quot;nonceExpirationInterval&quot;: &quot;00:05:00&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;,</span><br><span class="line">        &quot;httpSettings&quot;: &#123;</span><br><span class="line">            &quot;requireHttps&quot;: true,</span><br><span class="line">            &quot;routes&quot;: &#123;</span><br><span class="line">                &quot;apiPrefix&quot;: &quot;/.auth&quot;</span><br><span class="line">            &#125;,</span><br><span class="line">            &quot;forwardProxy&quot;: &#123;</span><br><span class="line">                &quot;convention&quot;: &quot;NoProxy&quot;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>隅付き括弧で記載されているパラメーターについては以下の通り設定いたします。</p>
+<p>・locationOfLogicApp &#x3D; japaneast や japanwest 等 Standard Logicc Apps が存在するリージョン<br>・issuerId &#x3D; “<a href="https://sts.windows.net/%7B%E3%83%87%E3%82%A3%E3%83%AC%E3%82%AF%E3%83%88%E3%83%AA(%E3%83%86%E3%83%8A%E3%83%B3%E3%83%88)ID%7D/">https://sts.windows.net/{ディレクトリ(テナント)ID}/</a> “<br>・clientId &#x3D; トークンから取得した aud<br>・audience1 &#x3D; AAD に登録したアプリの {アプリケーション ID の URI}<br>・audience2 &#x3D; トークンから取得した aud<br>・ObjectId of AAD app &#x3D; トークンから取得した oid</p>
+<p>上記の通り Body が設定出来ましたら、[PUT] ボタンを選択します。<br><img src="/blog/LogicApps/AadAuthentication/image029.png"></p>
+<p>画面中央に緑色のチェックマークが表示されれば完了です。<br><img src="/blog/LogicApps/AadAuthentication/image030.png"></p>
+<h2 id="AAD-認証による-Standard-Logic-Apps-の実行"><a href="#AAD-認証による-Standard-Logic-Apps-の実行" class="headerlink" title="AAD 認証による Standard Logic Apps の実行"></a>AAD 認証による Standard Logic Apps の実行</h2><p>以上の事前準備が出来ましたら、以下の REST API を実行し、Standard Logic Apps を実行致します。<br>なお、AAD 認証で呼び出す Standard Logic Apps のトリガーについては “HTTP 要求の受信時” トリガーである必要がございますため、ご留意いただきますようお願い申し上げます。</p>
+<p><img src="/blog/LogicApps/AadAuthentication/image01101.png"></p>
+<p>・POST メソッド</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">https://&#123;logicAppName&#125;.azurewebsites.net:443/api/&#123;workflowName&#125;/triggers/manual/invoke?api-version=2020-05-01-preview</span><br></pre></td></tr></table></figure>
+
+<p>・logicAppName &#x3D; Standard Logic Apps （ワークフロー名ではない）<br>・workflowName &#x3D; Standard Logic Apps に構築しているワークフロー名<br><img src="/blog/LogicApps/AadAuthentication/image012.png"><br><img src="/blog/LogicApps/AadAuthentication/image013.png"></p>
+<p>続いて、Postman の Headers に以下を追加いたします。</p>
+<p>・KEY &#x3D; Authorization<br>・VALUE &#x3D; Bearer “access_token”<br><img src="/blog/LogicApps/AadAuthentication/image014.png"></p>
+<p>以上の設定が出来ましたら、画面右上の [Send] ボタンを選択し、リクエストを送信します。</p>
+<p>Status 202 が表示されましたら無事 Standard Logic Apps のワークフローが AAD 認証によって実行されます。<br><img src="/blog/LogicApps/AadAuthentication/image015.png"></p>
+<p>Standard Logic Apps の実行結果に Postman から実行されたログが出力されます。<br><img src="/blog/LogicApps/AadAuthentication/image016.png"></p>
+<p>以上の手順にて、AAD 認証を用いてStandard Logic Apps を実行することが可能でございます。</p>
+<h2 id="まとめ"><a href="#まとめ" class="headerlink" title="まとめ"></a>まとめ</h2><p>本記事では、以下についてご案内いたしましたが、ご理解いただけましたでしょうか。</p>
+<ul>
+<li>事前準備・前提</li>
+<li>Azure ActiveDirectory へのアプリ登録</li>
+<li>トークン取得</li>
+<li>Resource Explorer にて authsettingsV2 の更新</li>
+<li>AAD 認証による Standard Logic Apps の実行</li>
+</ul>
+<p>本記事が少しでもお役に立ちましたら幸いです。最後までお読みいただき、ありがとうございました！</p>
+<p>&lt;Azure Logic Apps の参考サイト&gt;<br>– 概要 - Azure Logic Apps とは<br><a href="https://learn.microsoft.com/ja-jp/azure/logic-apps/logic-apps-overview">https://learn.microsoft.com/ja-jp/azure/logic-apps/logic-apps-overview</a><br>Azure Logic Apps とは、ロジック アプリ デザイナーでフロー チャートを用いて作成したワークフローを自動実行するソリューションです。<br>Azure Logic Apps では、条件分岐などを実装することができ、ワークフローの実行状況に応じて実行する処理を分岐することが可能です。</p>
+
+      
+      
+        <div class="article-disclaimer">
+        
+          <p>※本情報の内容（添付文書、リンク先などを含む）は、作成日時点でのものであり、予告なく変更される場合があります。</p>
+        
+        </div>
+      
+    </div>
+    <footer class="article-footer">
+      
+      
+  <ul class="article-tag-list" itemprop="keywords"><li class="article-tag-list-item"><a class="article-tag-list-link" href="../../tags/Azure-Integration/" rel="tag">Azure Integration</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="../../tags/Azure-Logic-Apps/" rel="tag">Azure Logic Apps</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="../../tags/How-To/" rel="tag">How-To</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="../../tags/Standard-Logic-Apps/" rel="tag">Standard Logic Apps</a></li><li class="article-tag-list-item"><a class="article-tag-list-link" href="../../tags/Tips/" rel="tag">Tips</a></li></ul>
+
+        
+        <a href="https://github.com/Yiwen-Chen/blog/edit/main/articles/LogicApps/AadAuthentication.md" class="article-github-edit-link" target="_blank" rel="noopener noreferrer">GitHub で編集</a>
+        
+    </footer>
+  </div>
+  
+    
+<nav id="article-nav">
+  
+    <a href="../outboundIpaddress/" id="article-nav-newer" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">次の記事</strong>
+      <div class="article-nav-title">
+        
+          Logic Apps の送信 IP アドレスについて
+        
+      </div>
+    </a>
+  
+  
+    <a href="../azureMonitorLogsLimit/" id="article-nav-older" class="article-nav-link-wrap">
+      <strong class="article-nav-caption">前の記事</strong>
+      <div class="article-nav-title">「Azure Monitor Logs」コネクタのクエリ実行に関わる制約について</div>
+    </a>
+  
+</nav>
+
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">最近の投稿</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="../LogicApps-HttpActionTimeout/">Logic Apps の HTTP アクションにおけるタイムアウトの考え方</a>
+          </li>
+        
+          <li>
+            <a href="../standardLogicAppsCpuMemory/">Standard Logic Apps で CPU やメモリが高騰する一般的な原因とその対処法</a>
+          </li>
+        
+          <li>
+            <a href="../logicAppsLimitation/">Logic Apps を利用する上でご考慮いただきたい制約</a>
+          </li>
+        
+          <li>
+            <a href="../LogicAppsConnectorList/">Logic Apps で使用できるコネクタについて</a>
+          </li>
+        
+          <li>
+            <a href="../triggerConcurrency/">トリガーのコンカレンシー制御と最大実行待機数について</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">タグ</h3>
+    <div class="widget">
+      <!-- <ul class="tag-list" itemprop="keywords"><li class="tag-list-item"><a class="tag-list-link" href="../../tags/API-%E6%8E%A5%E7%B6%9A/" rel="tag">API 接続</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Automation/" rel="tag">Azure Automation</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-CLI/" rel="tag">Azure CLI</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Cosmos-DB/" rel="tag">Azure Cosmos DB</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-DevOps/" rel="tag">Azure DevOps</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Integration/" rel="tag">Azure Integration</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Logic-Apps/" rel="tag">Azure Logic Apps</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Monitor/" rel="tag">Azure Monitor</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Monitor-Logs/" rel="tag">Azure Monitor Logs</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-OpenAI/" rel="tag">Azure OpenAI</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/BizTalk/" rel="tag">BizTalk</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Connector/" rel="tag">Connector</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Excel-Onlne/" rel="tag">Excel Onlne</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/For-each/" rel="tag">For each</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/General/" rel="tag">General</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Google-Sheets/" rel="tag">Google Sheets</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Graph-API/" rel="tag">Graph API</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/HIS/" rel="tag">HIS</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/HTTP-%E3%82%A2%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3/" rel="tag">HTTP アクション</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/How-To/" rel="tag">How-To</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Ip-address/" rel="tag">Ip address</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Issues/" rel="tag">Issues</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/JDBC/" rel="tag">JDBC</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Log/" rel="tag">Log</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/MSMQ/" rel="tag">MSMQ</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Retry-Policy/" rel="tag">Retry Policy</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Standard/" rel="tag">Standard</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Standard-Logic-Apps/" rel="tag">Standard Logic Apps</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Storage-Account/" rel="tag">Storage Account</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Tips/" rel="tag">Tips</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Trigger/" rel="tag">Trigger</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Trouble/" rel="tag">Trouble</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Troubleshooting/" rel="tag">Troubleshooting</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Unix-Time/" rel="tag">Unix Time</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/VNet-Integration/" rel="tag">VNet Integration</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9-%E3%83%97%E3%83%AD%E3%83%90%E3%82%A4%E3%83%80%E3%83%BC%E6%8E%A5%E7%B6%9A/" rel="tag">サービス プロバイダー接続</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/%E3%83%81%E3%83%BC%E3%83%A0%E7%B4%B9%E4%BB%8B/" rel="tag">チーム紹介</a></li><li class="tag-list-item"><a class="tag-list-link" href="../../tags/%E8%AA%8D%E8%A8%BC/" rel="tag">認証</a></li></ul>  -->
+      <ul class="tag-list"><li class="tag-list-item"><a class="tag-list-link" href="../../tags/Azure-Logic-Apps/">Azure Logic Apps</a><span class="tag-list-count">61</span><ul><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/API-%E6%8E%A5%E7%B6%9A">API 接続</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-Automation">Azure Automation</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-CLI">Azure CLI</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-Cosmos-DB">Azure Cosmos DB</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-DevOps">Azure DevOps</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-Integration">Azure Integration</a><span class="tag-list-count">61</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-Monitor">Azure Monitor</a><span class="tag-list-count">2</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-Monitor-Logs">Azure Monitor Logs</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Azure-OpenAI">Azure OpenAI</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Connector">Connector</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Excel-Onlne">Excel Onlne</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/For-each">For each</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Google-Sheets">Google Sheets</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Graph-API">Graph API</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/HTTP-%E3%82%A2%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3">HTTP アクション</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/How-To">How-To</a><span class="tag-list-count">50</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Ip-address">Ip address</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Issues">Issues</a><span class="tag-list-count">2</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/JDBC">JDBC</a><span class="tag-list-count">1</span></li><li class="tag-list-item tag-list-item-child-tag"><a class="tag-list-link tag-list-link-child" href="../../tags/Azure-Logic-Apps/Log">Log</a><span class="tag-list-count">1</span></li></ul></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">アーカイブ</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2026/04/">2026 / 04</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2026/02/">2026 / 02</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2026/01/">2026 / 01</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/12/">2025 / 12</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/11/">2025 / 11</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/09/">2025 / 09</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/06/">2025 / 06</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/05/">2025 / 05</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/02/">2025 / 02</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2025/01/">2025 / 01</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2024/11/">2024 / 11</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2024/07/">2024 / 07</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2024/04/">2024 / 04</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/12/">2023 / 12</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/11/">2023 / 11</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/10/">2023 / 10</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/09/">2023 / 09</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/08/">2023 / 08</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/07/">2023 / 07</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/06/">2023 / 06</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/05/">2023 / 05</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/04/">2023 / 04</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/03/">2023 / 03</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/02/">2023 / 02</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2023/01/">2023 / 01</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/12/">2022 / 12</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/11/">2022 / 11</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/10/">2022 / 10</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/09/">2022 / 09</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/08/">2022 / 08</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/07/">2022 / 07</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/06/">2022 / 06</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/05/">2022 / 05</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/04/">2022 / 04</a></li><li class="archive-list-item"><a class="archive-list-link" href="../../archives/2022/03/">2022 / 03</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">タグクラウド</h3>
+    <div class="widget tagcloud">
+      <a href="../../tags/API-%E6%8E%A5%E7%B6%9A/" style="font-size: 10px;">API 接続</a> <a href="../../tags/Azure-Automation/" style="font-size: 10px;">Azure Automation</a> <a href="../../tags/Azure-CLI/" style="font-size: 10px;">Azure CLI</a> <a href="../../tags/Azure-Cosmos-DB/" style="font-size: 10px;">Azure Cosmos DB</a> <a href="../../tags/Azure-DevOps/" style="font-size: 10px;">Azure DevOps</a> <a href="../../tags/Azure-Integration/" style="font-size: 20px;">Azure Integration</a> <a href="../../tags/Azure-Logic-Apps/" style="font-size: 18.57px;">Azure Logic Apps</a> <a href="../../tags/Azure-Monitor/" style="font-size: 11.43px;">Azure Monitor</a> <a href="../../tags/Azure-Monitor-Logs/" style="font-size: 10px;">Azure Monitor Logs</a> <a href="../../tags/Azure-OpenAI/" style="font-size: 10px;">Azure OpenAI</a> <a href="../../tags/BizTalk/" style="font-size: 10px;">BizTalk</a> <a href="../../tags/Connector/" style="font-size: 10px;">Connector</a> <a href="../../tags/Excel-Onlne/" style="font-size: 10px;">Excel Onlne</a> <a href="../../tags/For-each/" style="font-size: 10px;">For each</a> <a href="../../tags/General/" style="font-size: 11.43px;">General</a> <a href="../../tags/Google-Sheets/" style="font-size: 10px;">Google Sheets</a> <a href="../../tags/Graph-API/" style="font-size: 10px;">Graph API</a> <a href="../../tags/HIS/" style="font-size: 10px;">HIS</a> <a href="../../tags/HTTP-%E3%82%A2%E3%82%AF%E3%82%B7%E3%83%A7%E3%83%B3/" style="font-size: 10px;">HTTP アクション</a> <a href="../../tags/How-To/" style="font-size: 17.14px;">How-To</a> <a href="../../tags/Ip-address/" style="font-size: 10px;">Ip address</a> <a href="../../tags/Issues/" style="font-size: 11.43px;">Issues</a> <a href="../../tags/JDBC/" style="font-size: 10px;">JDBC</a> <a href="../../tags/Log/" style="font-size: 11.43px;">Log</a> <a href="../../tags/MSMQ/" style="font-size: 15.71px;">MSMQ</a> <a href="../../tags/Retry-Policy/" style="font-size: 10px;">Retry Policy</a> <a href="../../tags/Standard/" style="font-size: 10px;">Standard</a> <a href="../../tags/Standard-Logic-Apps/" style="font-size: 14.29px;">Standard Logic Apps</a> <a href="../../tags/Storage-Account/" style="font-size: 11.43px;">Storage Account</a> <a href="../../tags/Tips/" style="font-size: 17.14px;">Tips</a> <a href="../../tags/Trigger/" style="font-size: 14.29px;">Trigger</a> <a href="../../tags/Trouble/" style="font-size: 11.43px;">Trouble</a> <a href="../../tags/Troubleshooting/" style="font-size: 12.86px;">Troubleshooting</a> <a href="../../tags/Unix-Time/" style="font-size: 10px;">Unix Time</a> <a href="../../tags/VNet-Integration/" style="font-size: 10px;">VNet Integration</a> <a href="../../tags/%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9-%E3%83%97%E3%83%AD%E3%83%90%E3%82%A4%E3%83%80%E3%83%BC%E6%8E%A5%E7%B6%9A/" style="font-size: 10px;">サービス プロバイダー接続</a> <a href="../../tags/%E3%83%81%E3%83%BC%E3%83%A0%E7%B4%B9%E4%BB%8B/" style="font-size: 10px;">チーム紹介</a> <a href="../../tags/%E8%AA%8D%E8%A8%BC/" style="font-size: 10px;">認証</a>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      <a href="https://privacy.microsoft.com/ja-jp/privacystatement" target="_blank" rel=”noopener”>Privacy & Cookies</a> |  
+      <a href="https://www.microsoft.com/ja-jp/legal/intellectualproperty/copyright" target="_blank" rel=”noopener”>Terms of use</a> |
+      <a href="https://www.microsoft.com/ja-jp/legal/intellectualproperty/trademarks" target="_blank" rel=”noopener”>Trademarks</a> |
+      &copy; 2026 Japan Azure Integration Support Team<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="../../index.html" class="mobile-nav-link">Home</a>
+  
+    <a href="../../archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+
+<script src="../../js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
