@@ -129,6 +129,20 @@ steps:
     reportDir: '$(Build.ArtifactStagingDirectory)/html-preview'
     tabName: BlogPreview
 
+- script: |
+    echo "=== Hexo generated HTML (source) ==="
+    TARGET_HTML="$(Build.SourcesDirectory)/public/LogicApps/yiwenTest/index.html"
+    echo "Size: $(wc -c < "$TARGET_HTML") bytes"
+    echo "--- First 50 lines ---"
+    head -50 "$TARGET_HTML"
+    echo ""
+    echo "=== Preview HTML (output) ==="
+    echo "Size: $(wc -c < $(Build.ArtifactStagingDirectory)/html-preview/index.html) bytes"
+    echo "--- Full content ---"
+    cat $(Build.ArtifactStagingDirectory)/html-preview/index.html
+  displayName: 'Debug - Show HTML content'
+  condition: and(succeeded(), eq(variables['preview_enabled'], 'true'))
+
 - task: PowerShell@2
   displayName: 'Post preview link to PR discussion'
   condition: and(succeeded(), eq(variables['preview_enabled'], 'true'), or(eq(variables['Build.Reason'], 'PullRequest'), startsWith(variables['Build.SourceBranch'], 'refs/pull/')))

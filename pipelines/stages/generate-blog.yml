@@ -44,7 +44,7 @@ stages:
       displayName: 'Fix vulnerabilities'
 
     - script: |
-        sudo npm run build
+        npm run build
       displayName: 'Generate blog'
     
     - task: ArchiveFiles@2
