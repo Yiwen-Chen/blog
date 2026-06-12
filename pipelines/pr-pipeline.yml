@@ -49,6 +49,25 @@ steps:
   displayName: 'Generate blog'
 
 - script: |
+    echo "=== Check generated HTML files ==="
+    echo "public/ top-level files:"
+    ls -la $(Build.SourcesDirectory)/public/index.html 2>/dev/null || echo "No top-level index.html"
+    echo ""
+    echo "Sample article HTML files (first 5):"
+    find $(Build.SourcesDirectory)/public -name 'index.html' -path '*/LogicApps/*' | head -5 | while read f; do
+      echo "$f: $(wc -c < "$f") bytes"
+    done
+    echo ""
+    echo "Theme directory:"
+    ls -la $(Build.SourcesDirectory)/themes/ 2>/dev/null || echo "No themes dir"
+    ls -la $(Build.SourcesDirectory)/themes/jpazure/ 2>/dev/null || echo "No jpazure theme"
+    echo ""
+    echo "CSS/JS generated:"
+    ls -la $(Build.SourcesDirectory)/public/css/style.css 2>/dev/null || echo "No style.css"
+    ls -la $(Build.SourcesDirectory)/public/js/script.js 2>/dev/null || echo "No script.js"
+  displayName: 'Debug - Check build output'
+
+- script: |
     set -euo pipefail
     set -x
 
