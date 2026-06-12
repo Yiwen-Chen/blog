@@ -1,0 +1,34 @@
+{
+    "markdownlint.config": {
+        "MD013": false,
+        "MD024": false,
+        // H1 Header contain both yaml and body
+        "MD025": false,
+        "MD026": false,
+        "MD029": false,
+        "MD033": false,
+        "MD034": false,
+        // image caption
+        "MD045": false
+    },
+    "cSpell.words": [
+        "Azure",
+        "Bing",
+        "Datacenter",
+        "FQDN",
+        "GDPR",
+        "Intune",
+        "RBAC",
+        "azureemail",
+        "contoso",
+        "hotmail",
+        "noreply",
+        "onmicrosoft",
+        "textlint"
+    ],
+    "pasteImage.path": "${currentFileDir}/${currentFileNameWithoutExt}",
+    "pasteImage.insertPattern": "${imageSyntaxPrefix}./${imageFilePath}${imageSyntaxSuffix}",
+    "editor.tabSize": 2,
+    "editor.stickyTabStops": true,
+    "editor.indentSize": "tabSize"
+}

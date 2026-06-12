@@ -1,0 +1,163 @@
+trigger: none
+
+pr:
+  autoCancel: true
+  branches:
+    include:
+      - '*'
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+- checkout: self
+  submodules: true
+  fetchDepth: 0
+
+- script: |
+    cd $(Build.Repository.LocalPath)
+    sed -i -e "s|root: .*|root: /blog|g" _config.yml
+    sed -i -e "s|url: https://yiwen-chen.github.io/blog/|url: https://yiwen-chen.github.io/blog|g" _config.yml
+    cat _config.yml
+  displayName: 'Update root path in _config.yml'
+
+- task: NodeTool@0
+  inputs:
+    versionSpec: '20.x'
+  displayName: 'Install Node.js'
+
+- script: |
+    git clone --depth 1 https://github.com/cssjpn/blog-build-tools
+    cp -r blog-build-tools/package*.json .
+    cp -r blog-build-tools/gulpfile.js .
+    cp -r blog-build-tools/lib .
+    rm -rf blog-build-tools
+  displayName: 'Copy files from blog-build-tools to blog'
+
+- task: Npm@1
+  inputs:
+    command: 'install'
+  displayName: 'Install Npm'
+
+- script: |
+    echo "Running npm audit fix..."
+    npm audit fix || true
+  displayName: 'Fix vulnerabilities'
+
+- script: |
+    npm run build
+  displayName: 'Generate blog'
+
+- script: |
+    set -euo pipefail
+    set -x
+
+    export PREVIEW_DIR="$(Build.ArtifactStagingDirectory)/html-preview"
+    export PUBLIC_ROOT="$(Build.SourcesDirectory)/public"
+    export THEME_FONT_DIR="$(Build.SourcesDirectory)/themes/jpazure/source/css/fonts"
+
+    # Default: enable preview. We only disable if no article changes detected.
+    echo "##vso[task.setvariable variable=preview_enabled]true"
+
+    # Determine target article from PR diff; fallback to latest article HTML
+    TARGET_BRANCH="${SYSTEM_PULLREQUEST_TARGETBRANCH:-refs/heads/main}"
+    TARGET_BRANCH="${TARGET_BRANCH#refs/heads/}"
+    git fetch origin "$TARGET_BRANCH" --depth=0 || true
+    BASE=$(git merge-base HEAD origin/"$TARGET_BRANCH" || echo "")
+    if [ -n "$BASE" ]; then
+      CHANGED_MD=$(git diff --name-only "$BASE"...HEAD -- 'articles/**/*.md' | head -n1 || true)
+    else
+      CHANGED_MD=$(git diff --name-only origin/"$TARGET_BRANCH"...HEAD -- 'articles/**/*.md' | head -n1 || true)
+    fi
+
+    if [ -n "$CHANGED_MD" ]; then
+      REL="${CHANGED_MD#articles/}"
+      # Try both permalink patterns: :title.html and :title/index.html
+      CANDIDATE1="$PUBLIC_ROOT/${REL%.md}.html"
+      CANDIDATE2="$PUBLIC_ROOT/${REL%.md}/index.html"
+      if [ -f "$CANDIDATE1" ]; then
+        export TARGET_HTML="$CANDIDATE1"
+      elif [ -f "$CANDIDATE2" ]; then
+        export TARGET_HTML="$CANDIDATE2"
+      fi
+    fi
+
+    # If no markdown changes, skip preview generation
+    if [ -z "${TARGET_HTML:-}" ]; then
+      echo "No article markdown changes detected. Skipping preview generation."
+      echo "##vso[task.setvariable variable=preview_enabled]false"
+      exit 0
+    fi
+
+    echo "##vso[task.setvariable variable=preview_enabled]true"
+
+    echo "Preview target HTML: $TARGET_HTML"
+
+    rm -rf "$PREVIEW_DIR"
+    mkdir -p "$PREVIEW_DIR"
+
+    # If the theme outputs assets under css/images, duplicate them to /images so inlined CSS url(images/...) resolves.
+    if [ -d "$PUBLIC_ROOT/css/images" ]; then
+      mkdir -p "$PREVIEW_DIR/images"
+      cp -r "$PUBLIC_ROOT/css/images/"* "$PREVIEW_DIR/images/" || true
+    fi
+
+    # Copy fonts to predictable locations in case data-URI inlining misses some
+    if [ -d "$PUBLIC_ROOT/css/fonts" ]; then
+      mkdir -p "$PREVIEW_DIR/css/fonts" "$PREVIEW_DIR/fonts"
+      cp -r "$PUBLIC_ROOT/css/fonts/"* "$PREVIEW_DIR/css/fonts/" || true
+      cp -r "$PUBLIC_ROOT/css/fonts/"* "$PREVIEW_DIR/fonts/" || true
+    fi
+    if [ -d "$PUBLIC_ROOT/fonts" ]; then
+      mkdir -p "$PREVIEW_DIR/css/fonts" "$PREVIEW_DIR/fonts"
+      cp -r "$PUBLIC_ROOT/fonts/"* "$PREVIEW_DIR/css/fonts/" || true
+      cp -r "$PUBLIC_ROOT/fonts/"* "$PREVIEW_DIR/fonts/" || true
+    fi
+    if [ -d "$THEME_FONT_DIR" ]; then
+      mkdir -p "$PREVIEW_DIR/css/fonts" "$PREVIEW_DIR/fonts"
+      cp -r "$THEME_FONT_DIR/"* "$PREVIEW_DIR/css/fonts/" || true
+      cp -r "$THEME_FONT_DIR/"* "$PREVIEW_DIR/fonts/" || true
+    fi
+
+    node pipelines/scripts/prepare-preview.js "$TARGET_HTML" "$PREVIEW_DIR" "$PUBLIC_ROOT" "$THEME_FONT_DIR"
+  displayName: 'Stage HTML preview with assets'
+
+- task: PublishHtmlReport@1
+  displayName: Publish HTML (Preview Page)
+  condition: and(succeeded(), eq(variables['preview_enabled'], 'true'))
+  inputs:
+    reportDir: '$(Build.ArtifactStagingDirectory)/html-preview'
+    tabName: BlogPreview
+
+- task: PowerShell@2
+  displayName: 'Post preview link to PR discussion'
+  condition: and(succeeded(), eq(variables['preview_enabled'], 'true'), or(eq(variables['Build.Reason'], 'PullRequest'), startsWith(variables['Build.SourceBranch'], 'refs/pull/')))
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+  inputs:
+    targetType: 'inline'
+    script: |
+      $prId = $env:SYSTEM_PULLREQUEST_PULLREQUESTID
+      if (-not $prId) { Write-Host "PR id missing. Skipping comment."; exit 0 }
+
+      $orgUrl   = $env:SYSTEM_COLLECTIONURI
+      $project  = $env:SYSTEM_TEAMPROJECT
+      $repoId   = $env:BUILD_REPOSITORY_ID
+      $buildId  = $env:BUILD_BUILDID
+      $token    = $env:SYSTEM_ACCESSTOKEN
+
+      $reportUrl = "$($orgUrl)$project/_build/results?buildId=$buildId&view=blakyaks.azure-pipelines-html-reports.build-html-reports-tab"
+      $body = @{
+        comments = @(
+          @{
+            content     = "📄 Preview Page Available: [Reports tab for build $buildId]($reportUrl)"
+            commentType = "text"
+          }
+        )
+        status = "active"
+      } | ConvertTo-Json -Depth 5
+
+      $headers = @{ Authorization = "Bearer $token" }
+      $uri = "$($orgUrl)$project/_apis/git/repositories/$repoId/pullRequests/$prId/threads?api-version=7.1-preview.1"
+      Write-Host "Posting PR comment with Reports link..."
+      Invoke-RestMethod -Method Post -Uri $uri -Headers $headers -ContentType "application/json" -Body $body

@@ -1,0 +1,63 @@
+stages:
+- stage: PushSource
+  displayName: 'Push source files to GitHub main branch'
+  jobs:
+  - deployment:
+    variables:
+    - group: jpazinteg-blog-publish-to-prod
+    pool:
+      vmImage: 'ubuntu-latest'
+    environment: 'jpazinteg-blog-prod'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - checkout: self
+            fetchDepth: 0
+
+          - task: InstallSSHKey@0
+            inputs:
+              knownHostsEntry: $(GITHUB_HOST_PUBLIC_KEY)
+              sshKeySecureFile: 'jpazinteg-github-deploy-private-key'
+            displayName: 'Install SSH Deploy Key'
+
+          - script: |
+              set -euo pipefail
+
+              GITHUB_REPO="git@github.com:Yiwen-Chen/blog.git"
+              WORK_DIR="$(Agent.TempDirectory)/github-main"
+
+              # Clone GitHub main branch (or initialize if it doesn't exist yet)
+              if git ls-remote --exit-code "$GITHUB_REPO" refs/heads/main > /dev/null 2>&1; then
+                git clone -b main "$GITHUB_REPO" "$WORK_DIR"
+              else
+                mkdir -p "$WORK_DIR"
+                cd "$WORK_DIR"
+                git init
+                git remote add origin "$GITHUB_REPO"
+                git checkout -b main
+              fi
+
+              cd "$WORK_DIR"
+
+              # Sync article source files from Azure DevOps repo
+              rsync -av --delete \
+                --exclude='.git' \
+                --exclude='node_modules' \
+                --exclude='public' \
+                --exclude='db.json' \
+                --exclude='yiwen-blog-deploy-key' \
+                --exclude='yiwen-blog-deploy-key.pub' \
+                "$(Build.SourcesDirectory)/" "$WORK_DIR/"
+
+              git config user.name "Azure Pipelines"
+              git config user.email "azuredevops@users.noreply.github.com"
+              git add .
+
+              if git diff --cached --quiet; then
+                echo "No changes to push to GitHub main."
+              else
+                git commit -m "Sync source from Azure DevOps, commit: $(Build.SourceVersion)"
+                git push origin main
+              fi
+            displayName: 'Push source to GitHub main branch'

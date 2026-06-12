@@ -1,0 +1,8 @@
+schemaVersion: 0.0.1
+isProduction: true
+accountableOwners:
+  service: fd6d5c19-cf51-4446-998c-d7f9deefe241
+routing:
+  defaultAreaPath:
+    org: jpazinteg
+    path: blog
