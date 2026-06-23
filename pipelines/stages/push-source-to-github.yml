@@ -46,8 +46,8 @@ stages:
                 --exclude='node_modules' \
                 --exclude='public' \
                 --exclude='db.json' \
-                --exclude='yiwen-blog-deploy-key' \
-                --exclude='yiwen-blog-deploy-key.pub' \
+                --exclude='integ-blog-key' \
+                --exclude='integ-blog-key.pub' \
                 "$(Build.SourcesDirectory)/" "$WORK_DIR/"
 
               git config user.name "Azure Pipelines"

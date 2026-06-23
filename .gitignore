@@ -6,14 +6,18 @@ node_modules/
 public/
 .deploy*/
 source/_posts/
-yiwen-blog-deploy-key
-yiwen-blog-deploy-key.pub
+# SSH Deploy Keys (never commit private keys; store them in Azure DevOps Secure Files)
+integ-blog-private-key
+integ-blog-key
+integ-blog-key.pub
+*.pem
+id_rsa
+id_ed25519
 
-# for devcontainers
+# for devcontainers (these are symlinked by postCreateCommand.sh, not tracked)
 package.json
 package-lock.json
 lib
 gulpfile.js
-scaffolds
 # symbolic link
 node_modules
