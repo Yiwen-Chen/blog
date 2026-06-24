@@ -13,11 +13,3 @@ integ-blog-key.pub
 *.pem
 id_rsa
 id_ed25519
-
-# for devcontainers (these are symlinked by postCreateCommand.sh, not tracked)
-package.json
-package-lock.json
-lib
-gulpfile.js
-# symbolic link
-node_modules
